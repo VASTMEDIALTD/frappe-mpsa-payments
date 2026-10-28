@@ -1,5 +1,9 @@
 frappe.ui.form.on("Payment Entry", {
 	refresh(frm) {
+		if (window.mpsa_b2c) {
+			mpsa_b2c.setup(frm);
+		}
+
 		if (
 			frm.doc.docstatus === 0 &&
 			!frm.is_new() &&

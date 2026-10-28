@@ -32,7 +32,9 @@
   "column_break_hvei",
   "reference_date",
   "section_break_apzo",
-  "b2c_disbursement_request"
+  "b2c_disbursement_request",
+  "accounting_entry_type",
+  "accounting_entry"
  ],
  "fields": [
   {
@@ -173,6 +175,25 @@
    "read_only": 1
   },
   {
+   "allow_on_submit": 1,
+   "fieldname": "accounting_entry_type",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Accounting Entry Type",
+   "options": "DocType",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "columns": 2,
+   "fieldname": "accounting_entry",
+   "fieldtype": "Dynamic Link",
+   "in_list_view": 1,
+   "label": "Accounting Entry",
+   "options": "accounting_entry_type",
+   "read_only": 1
+  },
+  {
    "fieldname": "payment_status_section",
    "fieldtype": "Section Break",
    "label": "Payment Status"
@@ -200,7 +221,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-12-04 09:53:27.631771",
+ "modified": "2026-10-28 23:16:00.000000",
  "modified_by": "a@d.com",
  "module": "Frappe Mpsa Payments",
  "name": "B2C Payment Disbursement Reference",

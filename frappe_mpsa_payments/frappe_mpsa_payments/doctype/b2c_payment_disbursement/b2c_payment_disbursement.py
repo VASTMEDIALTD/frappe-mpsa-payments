@@ -50,7 +50,14 @@ class B2CPaymentDisbursement(Document):
         else:
             frappe.throw(f"Unsupported payment type: {self.payment_type}")
 
+        from frappe_mpsa_payments.services.b2c_ledger_service import is_ledger_first
+
+        post_to_ledger_first = is_ledger_first(settings)
+
         for ref in self.references:
+            if post_to_ledger_first:
+                self.post_ledger_entry(ref)
+
             ref.payment_status = "Initiated"
             frappe.enqueue(
                 "frappe_mpsa_payments.frappe_mpsa_payments.doctype.b2c_payment_disbursement.b2c_payment_disbursement.create_b2c_request",
@@ -63,6 +70,39 @@ class B2CPaymentDisbursement(Document):
             )
 
         self.status = "Initiated"
+
+    def post_ledger_entry(self, ref) -> None:
+        """Post the accounting entry of a reference row before the request.
+
+        Only used when "Post To Ledger Before Request" is ticked on the
+        provider settings. The entry is submitted here so the ledger is in
+        place before any money leaves the account; the callback only stamps
+        the M-Pesa confirmation onto it afterwards.
+        """
+        from frappe_mpsa_payments.services.b2c_ledger_service import (
+            create_ledger_entry,
+        )
+
+        try:
+            ledger_doctype, ledger_name = create_ledger_entry(self, ref, submit=True)
+        except Exception as error:
+            frappe.log_error(
+                frappe.get_traceback(),
+                "B2C Post To Ledger Before Request Failed",
+            )
+            frappe.throw(
+                _(
+                    "Could not post the accounting entry for row #{0} ({1} {2}): {3}"
+                ).format(
+                    ref.idx,
+                    ref.reference_doctype,
+                    ref.reference_name,
+                    str(error)[:300],
+                )
+            )
+
+        ref.accounting_entry_type = ledger_doctype
+        ref.accounting_entry = ledger_name
 
     def validate_mandatory_fields(self) -> None:
         mandatory_fields = [
@@ -168,12 +208,46 @@ class B2CPaymentDisbursement(Document):
                         B2C_REQUEST_DOCTYPE, ref.b2c_disbursement_request
                     )
                     if b2c_request.status == "Failed":
+                        self.reset_m_pesa_status_on_retry(ref, b2c_request)
                         b2c_request.retry_failed_payment()
                 except Exception as e:
                     frappe.log_error(
                         f"Retry error for B2C Request {ref.b2c_disbursement_request}: {str(e)}",
                         "Retry Failed Payments Error",
                     )
+
+    def reset_m_pesa_status_on_retry(self, ref, b2c_request) -> None:
+        """Show an already posted entry as pending M-Pesa confirmation again.
+
+        Only applies when "Post To Ledger Before Request" is ticked, ie the
+        accounting entry exists and is submitted. Nothing is created, changed
+        or reversed in the ledger - only the M-Pesa status of the entry (and of
+        the reference row) is reset while the retried request is in flight.
+        """
+        from frappe_mpsa_payments.services.b2c_ledger_service import (
+            is_ledger_first,
+            mark_initiated,
+            resolve_ledger_entry,
+        )
+
+        settings = None
+        if b2c_request.mpesa_settings:
+            settings = frappe.get_doc(
+                MPESA_SETTINGS_DOCTYPE, b2c_request.mpesa_settings
+            )
+        elif b2c_request.stanbic_settings:
+            settings = frappe.get_doc(
+                STANBIC_SETTINGS_DOCTYPE, b2c_request.stanbic_settings
+            )
+
+        if not is_ledger_first(settings):
+            return
+
+        ledger_doctype, ledger_name = resolve_ledger_entry(ref, b2c_request)
+        if ledger_doctype:
+            mark_initiated(ledger_doctype, ledger_name)
+
+        frappe.db.set_value(ref.doctype, ref.name, "payment_status", "Initiated")
 
     @frappe.whitelist()
     def update_disbursement_status(self) -> None:
@@ -880,6 +954,12 @@ def create_b2c_request(ref, settings, b2c_disbursement):
         frappe.db.set_value(
             ref.doctype, ref.name, "b2c_disbursement_request", b2c_request.name
         )
+
+        from frappe_mpsa_payments.services.b2c_ledger_service import (
+            link_request_to_ledger,
+        )
+
+        link_request_to_ledger(ref.doctype, ref.name, b2c_request.name)
 
     except Exception as e:
         frappe.log_error(

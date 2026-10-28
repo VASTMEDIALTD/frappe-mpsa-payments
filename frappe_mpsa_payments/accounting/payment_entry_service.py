@@ -6,7 +6,9 @@ from frappe_mpsa_payments.frappe_mpsa_payments.api.payment_entry import (
 )
 
 
-def create_payment_entry_for_doc(b2c_disbursement, b2c_disbursement_ref, submit=False):
+def create_payment_entry_for_doc(
+    b2c_disbursement, b2c_disbursement_ref, submit=False, raise_errors=False
+):
     """
     Create a Payment Entry for various reference doctypes.
 
@@ -14,6 +16,10 @@ def create_payment_entry_for_doc(b2c_disbursement, b2c_disbursement_ref, submit=
         b2c_disbursement: B2C Payment Disbursement document
         b2c_disbursement_ref: B2C Payment Disbursement Reference document
         submit: whether to submit the Payment Entry
+        raise_errors: re-raise creation errors so the caller can abort
+
+    Returns:
+        Payment Entry document or None when creation failed silently
     """
     import erpnext
 
@@ -41,7 +47,7 @@ def create_payment_entry_for_doc(b2c_disbursement, b2c_disbursement_ref, submit=
             }
         ]
 
-        create_payment_entry(
+        payment_entry = create_payment_entry(
             company,
             party,
             amount,
@@ -56,7 +62,12 @@ def create_payment_entry_for_doc(b2c_disbursement, b2c_disbursement_ref, submit=
             references=references,
             party_account=party_account,
         )
+
+        return payment_entry
+
     except Exception:
         frappe.log_error(frappe.get_traceback(), "Payment Entry Service Error")
+        if raise_errors:
+            raise
     finally:
         frappe.set_user(current_user)

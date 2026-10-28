@@ -39,7 +39,10 @@ fixtures = [
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/frappe_mpsa_payments/css/frappe_mpsa_payments.css"
-app_include_js = "/assets/frappe_mpsa_payments/js/utils.js"
+app_include_js = [
+    "/assets/frappe_mpsa_payments/js/utils.js",
+    "/assets/frappe_mpsa_payments/js/b2c_ledger.js",
+]
 
 # include js, css files in header of web template
 # web_include_css = "/assets/frappe_mpsa_payments/css/frappe_mpsa_payments.css"
@@ -62,6 +65,8 @@ doctype_js = {
     "POS Invoice": "public/js/pos_invoice.js",
     "Payment Request": "public/js/payment_request.js",
     "Payment Entry": "public/js/payment_entry.js",
+    "Journal Entry": "public/js/journal_entry.js",
+    "Loan Disbursement": "public/js/loan_disbursement.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}

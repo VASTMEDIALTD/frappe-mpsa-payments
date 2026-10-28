@@ -2,6 +2,7 @@ import frappe
 from frappe.utils import getdate
 
 from frappe_mpsa_payments.connectors.factory import get_b2c_connector
+from frappe_mpsa_payments.services.b2c_ledger_service import sync_ledger_with_request
 from frappe_mpsa_payments.utils.doctype_names import B2C_REQUEST_DOCTYPE
 
 
@@ -59,9 +60,16 @@ def update_b2c_reference_status(b2c_request_name: str, enqueue_next: bool = Fals
         frappe.db.set_value("B2C Payment Disbursement Reference", ref_name, update)
         frappe.db.commit()
 
+    if ref_name and req.status == "Failed":
+        # Keep the ledger exactly as posted - only the M-Pesa confirmation
+        # fields on the accounting document reflect the failed payout.
+        ref = frappe.get_doc("B2C Payment Disbursement Reference", ref_name)
+        sync_ledger_with_request(ref, req)
+
     if enqueue_next and req.status == "Paid":
         from frappe_mpsa_payments.services.b2c_postprocess_service import (
             handle_successful_payment,
         )
 
         handle_successful_payment(req.b2c_payment_disbursement, ref_name)
+

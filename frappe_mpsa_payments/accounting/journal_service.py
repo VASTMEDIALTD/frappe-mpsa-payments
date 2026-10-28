@@ -2,7 +2,9 @@ import frappe
 from frappe.utils import nowdate
 
 
-def create_journal_entry(b2c_disbursement, b2c_disbursement_ref, submit=False):
+def create_journal_entry(
+    b2c_disbursement, b2c_disbursement_ref, submit=False, raise_errors=False
+):
     """
     Create a Journal Entry for Salary Slip after successful B2C payment.
 
@@ -10,6 +12,10 @@ def create_journal_entry(b2c_disbursement, b2c_disbursement_ref, submit=False):
         b2c_disbursement: B2C Payment Disbursement document
         b2c_disbursement_ref: B2C Payment Disbursement Reference document
         submit: whether to submit the Journal Entry after inserting
+        raise_errors: re-raise creation errors so the caller can abort
+
+    Returns:
+        Journal Entry document or None when creation failed silently
     """
     try:
         salary_slip = frappe.get_doc("Salary Slip", b2c_disbursement_ref.reference_name)
@@ -51,7 +57,7 @@ def create_journal_entry(b2c_disbursement, b2c_disbursement_ref, submit=False):
                 "party_type": b2c_disbursement_ref.party_type,
                 "party": b2c_disbursement_ref.party,
                 "reference_type": "Payroll Entry",
-                "reference_name": b2c_disbursement_ref.payroll_entry,
+                "reference_name": b2c_disbursement_ref.get("payroll_entry"),
                 "b2c_payment_disbursement": b2c_disbursement.name,
             },
         )
@@ -59,5 +65,10 @@ def create_journal_entry(b2c_disbursement, b2c_disbursement_ref, submit=False):
         je.insert(ignore_permissions=True)
         if submit:
             je.submit()
+
+        return je
+
     except Exception:
         frappe.log_error(frappe.get_traceback(), "Journal Service Error")
+        if raise_errors:
+            raise

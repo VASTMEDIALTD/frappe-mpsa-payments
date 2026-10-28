@@ -51,6 +51,7 @@
   "auto_reconcile_c2b",
   "column_break_cuud",
   "submit_b2c_accounting_entries",
+  "post_to_ledger_before_request",
   "section_break_pwed",
   "reconciliation_order",
   "payment_page_tab",
@@ -328,19 +329,20 @@
    "label": "Pull Transaction Nominated Number"
   },
   {
+   "default": "0",
+   "description": "If checked, automatically pulls transactions for the last 2 hours once every hour.",
    "fieldname": "enable_hourly_pull_transactions",
    "fieldtype": "Check",
-   "label": "Enable Hourly Pull Transactions",
-   "description": "If checked, automatically pulls transactions for the last 2 hours once every hour."
+   "label": "Enable Hourly Pull Transactions"
   },
   {
    "description": "Set by Register Pull Transaction. 'Already Registered' means Safaricom already has this shortcode enrolled.",
    "fieldname": "pull_registration_status",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "Pull Registration Status",
    "options": "\nRegistered\nAlready Registered\nFailed",
-   "read_only": 1,
-   "in_list_view": 1
+   "read_only": 1
   },
   {
    "fieldname": "pull_registered_on",
@@ -363,10 +365,10 @@
    "description": "Success = Safaricom returned data. No Data = code 1001, which also means the shortcode may not be provisioned for Pull. Error = the request failed.",
    "fieldname": "last_pull_status",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "Last Pull Status",
    "options": "\nSuccess\nNo Data\nError",
-   "read_only": 1,
-   "in_list_view": 1
+   "read_only": 1
   },
   {
    "fieldname": "last_pull_response_code",
@@ -385,10 +387,17 @@
    "fieldtype": "Small Text",
    "label": "Last Pull Message",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "Create and submit the Payment Entry / Journal Entry / Loan Disbursement before the B2C request is sent to M-Pesa. Submitting the entry posts the ledger normally, exactly as ERPNext does for any document; the M-Pesa confirmation is then ticked on that entry. A failed payout leaves the submitted entry and its ledger entries unchanged.",
+   "fieldname": "post_to_ledger_before_request",
+   "fieldtype": "Check",
+   "label": "Post To Ledger Before Request"
   }
  ],
  "links": [],
- "modified": "2026-07-04 19:45:14.880419",
+ "modified": "2026-10-29 01:20:49.920152",
  "modified_by": "Administrator",
  "module": "Frappe Mpsa Payments",
  "name": "Mpesa Settings",

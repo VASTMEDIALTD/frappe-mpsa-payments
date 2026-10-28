@@ -43,10 +43,65 @@ def create_custom_lending_fields():
                 "insert_after": "reference_date",
                 "options": "B2C Payment Disbursement",
                 "read_only": 1,
-            }
+            },
+            *b2c_mpesa_confirmation_fields("reference_number"),
         ],
     }
     create_fields(custom_fields)
+
+
+def b2c_mpesa_confirmation_fields(insert_after: str) -> list:
+    """M-Pesa confirmation fields stamped on an accounting document.
+
+    They are updated from the B2C callback - the ledger entries of the
+    document are never changed by a failed payout, only these fields.
+    """
+    return [
+        {
+            "allow_on_submit": 1,
+            "default": "0",
+            "description": (
+                "Ticked automatically when M-Pesa confirms that the money "
+                "reached the recipient."
+            ),
+            "fieldname": "mpesa_payment_paid",
+            "fieldtype": "Check",
+            "in_standard_filter": 1,
+            "insert_after": insert_after,
+            "label": "M-Pesa Payment Paid",
+            "no_copy": 1,
+        },
+        {
+            "allow_on_submit": 1,
+            "fieldname": "b2c_payment_status",
+            "fieldtype": "Select",
+            "insert_after": "mpesa_payment_paid",
+            "label": "M-Pesa Payment Status",
+            "no_copy": 1,
+            "options": "\nInitiated\nConfirmed\nFailed",
+            "read_only": 1,
+        },
+        {
+            "allow_on_submit": 1,
+            "fieldname": "b2c_status_message",
+            "fieldtype": "Small Text",
+            "insert_after": "b2c_payment_status",
+            "label": "M-Pesa Status Message",
+            "no_copy": 1,
+            "read_only": 1,
+        },
+        {
+            "allow_on_submit": 1,
+            "fieldname": "b2c_disbursement_request",
+            "fieldtype": "Link",
+            "insert_after": "b2c_status_message",
+            "label": "B2C Disbursement Request",
+            "no_copy": 1,
+            "options": "B2C Disbursement Request",
+            "read_only": 1,
+        },
+    ]
+
 
 
 def create_custom_hrms_fields():
@@ -369,6 +424,32 @@ def create_custom_erpnext_fields():
                 "options": "Sales Invoice",
                 "read_only": 1,
                 "insert_after": "details_section",
+            },
+        ],
+        "Payment Entry": [
+            *b2c_mpesa_confirmation_fields("mode_of_payment"),
+            {
+                "allow_on_submit": 1,
+                "fieldname": "b2c_payment_disbursement",
+                "fieldtype": "Link",
+                "insert_after": "b2c_disbursement_request",
+                "label": "B2C Payment Disbursement",
+                "no_copy": 1,
+                "options": "B2C Payment Disbursement",
+                "read_only": 1,
+            },
+        ],
+        "Journal Entry": [
+            *b2c_mpesa_confirmation_fields("cheque_date"),
+            {
+                "allow_on_submit": 1,
+                "fieldname": "b2c_payment_disbursement",
+                "fieldtype": "Link",
+                "insert_after": "b2c_disbursement_request",
+                "label": "B2C Payment Disbursement",
+                "no_copy": 1,
+                "options": "B2C Payment Disbursement",
+                "read_only": 1,
             },
         ],
     }
