@@ -11,6 +11,7 @@ from ...utils.doctype_names import B2C_REQUEST_DOCTYPE, STANBIC_SETTINGS_DOCTYPE
 from ..abstract import B2CConnector
 from ..base_connector import (
     BaseAPIConnector,
+    b2c_status_to_integration_status,
     create_request_log,
     update_integration_request,
 )
@@ -361,12 +362,19 @@ class StanbicConnector(BaseAPIConnector, B2CConnector):
             if v is not None:
                 setattr(req, k, v)
         req.save(ignore_permissions=True)
+        frappe.db.commit()
 
-        update_integration_request(
-            self.integration_request.name,
-            status=req.status,
-            output=json.dumps(payload),
-        )
+        try:
+            update_integration_request(
+                self.integration_request.name,
+                status=b2c_status_to_integration_status(req.status),
+                output=json.dumps(payload),
+            )
+        except Exception:
+            frappe.log_error(
+                frappe.get_traceback(),
+                f"Stanbic B2C Callback Log Error for {req.name}",
+            )
         frappe.db.commit()
 
         frappe.enqueue(

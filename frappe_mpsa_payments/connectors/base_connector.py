@@ -60,6 +60,24 @@ def update_integration_request(
     doc.save(ignore_permissions=True)
 
 
+def b2c_status_to_integration_status(status: str | None) -> str:
+    """Map a B2C Request status onto a valid ``Integration Request.status``.
+
+    ``Integration Request.status`` is a select that only accepts "", Queued,
+    Authorized, Completed, Cancelled and Failed. Writing the B2C status
+    ("Paid") straight into it raises a ValidationError, which rolls back the
+    whole callback - including the transaction id and the reference stamping
+    done just before it.
+
+    Args:
+        status: Status of the B2C Disbursement Request (``Paid``/``Failed``).
+
+    Returns:
+        str: ``Completed`` for a confirmed payout, ``Failed`` otherwise.
+    """
+    return "Completed" if status == "Paid" else "Failed"
+
+
 class ErrorObserver:
     """
     Observer that handles connector errors by updating the Integration Request
