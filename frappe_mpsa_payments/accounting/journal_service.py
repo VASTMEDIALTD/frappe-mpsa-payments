@@ -1,6 +1,10 @@
 import frappe
 from frappe.utils import nowdate
 
+from frappe_mpsa_payments.accounting.reference_service import (
+    get_transaction_reference,
+)
+
 
 def create_journal_entry(
     b2c_disbursement, b2c_disbursement_ref, submit=False, raise_errors=False
@@ -33,10 +37,17 @@ def create_journal_entry(
                 "Journal Service",
             )
 
+        # A Bank Entry must carry a reference number and date, which are only
+        # known once the provider confirms the payout. A temporary reference is
+        # used when posting before the request and is replaced on confirmation.
+        cheque_no, cheque_date = get_transaction_reference(b2c_disbursement_ref)
+
         je = frappe.new_doc("Journal Entry")
         je.voucher_type = "Bank Entry"
         je.posting_date = nowdate()
         je.company = b2c_disbursement.company
+        je.cheque_no = cheque_no
+        je.cheque_date = cheque_date
         je.user_remark = f"B2C Payment for Salary Slip {salary_slip.name}"
 
         # Credit the paid_from account

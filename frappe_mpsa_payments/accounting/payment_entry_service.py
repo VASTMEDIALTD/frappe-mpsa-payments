@@ -1,6 +1,9 @@
 import frappe
 from frappe.utils import nowdate
 
+from frappe_mpsa_payments.accounting.reference_service import (
+    get_transaction_reference,
+)
 from frappe_mpsa_payments.frappe_mpsa_payments.api.payment_entry import (
     create_payment_entry,
 )
@@ -35,8 +38,7 @@ def create_payment_entry_for_doc(
         company = b2c_disbursement.company
         currency = frappe.db.get_value("Company", company, "default_currency")
         mode_of_payment = b2c_disbursement.mode_of_payment
-        reference_date = b2c_disbursement_ref.reference_date
-        reference_no = b2c_disbursement_ref.reference_no
+        reference_no, reference_date = get_transaction_reference(b2c_disbursement_ref)
 
         references = [
             {
